@@ -1053,6 +1053,9 @@ const DockSettings = GObject.registerClass({
         this._settings.bind('custom-background-color',
             this._builder.get_object('custom_background_color'),
             'sensitive', Gio.SettingsBindFlags.DEFAULT);
+        this._settings.bind('restore-theme-in-overview',
+            this._builder.get_object('restore_theme_in_overview_switch'),
+            'active', Gio.SettingsBindFlags.DEFAULT);
 
         const rgba = new Gdk.RGBA();
         rgba.parse(this._settings.get_string('background-color'));

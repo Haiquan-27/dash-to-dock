@@ -610,6 +610,11 @@
       <summary>Force straight corners in dash</summary>
       <description>Make the borders in the dash non rounded</description>
     </key>
+    <key name="restore-theme-in-overview" type="b">
+      <default>true</default>
+      <summary>Restore theme background and transparency in overview mode</summary>
+      <description>When the overview is shown, revert the dash background color and transparency to the theme defaults (the state before any extension customization), and restore the customization when leaving the overview.</description>
+    </key>
     <key name="unity-backlit-items" type="b">
       <default>false</default>
       <summary>Enable unity7 like glossy backlit items</summary>

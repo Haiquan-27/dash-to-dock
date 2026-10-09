@@ -64,6 +64,10 @@ export class ThemeManager {
             Main.overview,
             'hiding',
             this._onOverviewHiding.bind(this),
+        ], [
+            Docking.DockManager.settings,
+            'changed::restore-theme-in-overview',
+            this._onRestoreThemeInOverviewChanged.bind(this),
         ]);
 
         this._signalsHandler.addWithLabel(Labels.THEME_CHANGED,
@@ -124,10 +128,36 @@ export class ThemeManager {
 
     _onOverviewShowing() {
         this._actor.add_style_pseudo_class('overview');
+        if (Docking.DockManager.settings.restoreThemeInOverview)
+            this._revertToThemeStyle();
     }
 
     _onOverviewHiding() {
         this._actor.remove_style_pseudo_class('overview');
+        // Restore the customized background and transparency
+        if (Docking.DockManager.settings.restoreThemeInOverview)
+            this.updateCustomTheme();
+    }
+
+    // Apply the toggle live when the overview is currently visible
+    _onRestoreThemeInOverviewChanged() {
+        if (!Main.overview.visible)
+            return;
+
+        if (Docking.DockManager.settings.restoreThemeInOverview)
+            this._revertToThemeStyle();
+        else
+            this.updateCustomTheme();
+    }
+
+    // Revert the dock background color and transparency to the theme defaults
+    // (i.e. the state before any extension customization is applied)
+    _revertToThemeStyle() {
+        this._dash._background.set_style(null);
+        this._transparency.disable();
+        this._actor.remove_style_class_name('opaque');
+        this._actor.remove_style_class_name('transparent');
+        this._actor.remove_style_class_name('dashtodock');
     }
 
     _updateDashOpacity() {
