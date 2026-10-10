@@ -506,6 +506,11 @@ class Transparency {
     }
 
     _updateSolidStyle() {
+        // While the overview is showing and theme restore is active, the
+        // ThemeManager owns the dock style: never clobber it here.
+        if (this._dockActor.has_style_pseudo_class('overview') &&
+            Docking.DockManager.settings.restoreThemeInOverview)
+            return;
         const isNear = this._dockIsNear();
         if (isNear) {
             this._backgroundActor.set_style(this._opaque_style);

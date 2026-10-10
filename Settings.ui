@@ -2181,10 +2181,10 @@
                         <object class="GtkBox">
                           <property name="visible">True</property>
                           <property name="can-focus">False</property>
-                          <property name="margin-left">12</property>
-                          <property name="margin-right">12</property>
-                          <property name="margin-top">6</property>
-                          <property name="margin-bottom">6</property>
+                          <property name="margin_start">12</property>
+                          <property name="margin_end">12</property>
+                          <property name="margin_top">6</property>
+                          <property name="margin_bottom">6</property>
                           <property name="orientation">VERTICAL</property>
                           <child>
                             <object class="GtkLabel">
@@ -2193,6 +2193,8 @@
                               <property name="halign">START</property>
                               <property name="label" translatable="yes">Restore theme background and transparency in overview mode</property>
                             </object>
+                          </child>
+                          <child>
                             <object class="GtkSwitch" id="restore_theme_in_overview_switch">
                               <property name="visible">True</property>
                               <property name="can-focus">True</property>
