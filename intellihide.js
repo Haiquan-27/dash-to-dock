@@ -163,8 +163,9 @@ export class Intellihide {
     }
 
     _checkOverlap() {
-        if (!this._isEnabled || !this._targetBox)
+        if (!this._isEnabled || !this._targetBox) {
             return;
+        }
 
         /* Limit the number of calls to the doCheckOverlap function */
         if (this._checkOverlapTimeoutId) {
@@ -188,8 +189,9 @@ export class Intellihide {
     }
 
     _doCheckOverlap() {
-        if (!this._isEnabled || !this._targetBox)
+        if (!this._isEnabled || !this._targetBox) {
             return;
+        }
 
         let overlaps = OverlapStatus.FALSE;
         let windows = global.get_window_actors().filter(wa => this._handledWindow(wa));

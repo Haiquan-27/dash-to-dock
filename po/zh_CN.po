@@ -761,3 +761,7 @@ msgstr "固定到 Dock"
 
 #~ msgid "Only when in autohide"
 #~ msgstr "仅当自动隐藏时"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "在概览模式下恢复主题的背景与透明度"

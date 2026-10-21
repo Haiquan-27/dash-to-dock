@@ -116,6 +116,31 @@ export const DockAbstractAppIcon = GObject.registerClass({
             0, GLib.MAXUINT32, 0),
     },
 }, class DockAbstractAppIcon extends Dash.DashIcon {
+    // Keep the dock icon width consistent between the custom-theme state
+    // and the overview state when "restore theme in overview" is enabled.
+    // In the custom state the `#dashtodockContainer .overview-tile` CSS rule
+    // adds 2px of horizontal padding around the icon (2px on each side), but
+    // that class is dropped from the dock when the theme is restored in the
+    // overview. Without a stable width every icon would change by ~4px - and
+    // the whole dock would jump by ~4px * iconCount each time the overview is
+    // toggled. Anchor the width to the app icon's own preferred size (which is
+    // theme independent) plus that rule's horizontal padding, so the width is
+    // identical in both states and the icon is never clipped.
+    vfunc_get_preferred_width(forHeight) {
+        const icon = this.icon;
+        if (icon && icon.get_preferred_width) {
+            const [iconMin, iconNat] = icon.get_preferred_width(-1);
+            const iconWidth = Math.max(iconNat, iconMin, 0);
+            if (iconWidth > 0) {
+                // 4px == the horizontal padding (2px on each side) that the
+                // `overview-tile` rule contributes in the custom state.
+                const width = iconWidth + 4;
+                return [width, width];
+            }
+        }
+        return super.vfunc_get_preferred_width(forHeight);
+    }
+
     // settings are required inside.
     _init(app, monitorIndex, iconAnimator) {
         super._init(app);

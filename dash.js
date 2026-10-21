@@ -44,7 +44,7 @@ const Labels = Object.freeze({
  *
  * - set label position based on dash orientation
  *
- */
+  */
 const DockDashItemContainer = GObject.registerClass(
 class DockDashItemContainer extends Dash.DashItemContainer {
     _init(position) {
@@ -324,7 +324,14 @@ export const DockDash = GObject.registerClass({
     }
 
     vfunc_get_preferred_width(forHeight) {
-        const [minWidth, natWidth] = super.vfunc_get_preferred_width.call(this, forHeight);
+        // Base the width on the icons container (_dashContainer) rather than
+        // the full dash width. The full width includes the allocation-
+        // dependent _background (its sizer box is bound to _dashContainer's
+        // allocated width), which makes the dash's preferred width depend on
+        // its own allocation and causes a one-frame width "flicker" whenever
+        // the dash is relaid out (e.g. when the theme is restored on
+        // overview show/hide). _dashContainer's natural width is stable.
+        const [minWidth, natWidth] = this._dashContainer.get_preferred_width(forHeight);
         if (this._isHorizontal && this._maxWidth !== -1 && natWidth > this._maxWidth)
             return [minWidth, this._maxWidth];
         else

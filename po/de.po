@@ -747,3 +747,7 @@ msgstr "Stoßschwellenwert"
 
 #~ msgid "Add to Favorites"
 #~ msgstr "Zu Favoriten hinzufügen"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "Themen-Hintergrund und -Transparenz im Übersichtsmodus wiederherstellen"

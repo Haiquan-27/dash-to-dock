@@ -49,6 +49,10 @@ export class ThemeManager {
         this._bindSettingsChanges();
         this._actor = dock;
         this._dash = dock.dash;
+        // True while the dock shows the theme style in the overview
+        // (set in _onOverviewShowing, cleared when the customized style
+        // is restored in _onOverviewHiding).
+        this._themeStyleActive = false;
 
         // initialize colors with generic values
         this._customizedBackground = {red: 0, green: 0, blue: 0, alpha: 0};
@@ -64,6 +68,10 @@ export class ThemeManager {
             Main.overview,
             'hiding',
             this._onOverviewHiding.bind(this),
+        ], [
+            Main.overview,
+            'hidden',
+            this._onOverviewHidden.bind(this),
         ], [
             Docking.DockManager.settings,
             'changed::restore-theme-in-overview',
@@ -128,15 +136,38 @@ export class ThemeManager {
 
     _onOverviewShowing() {
         this._actor.add_style_pseudo_class('overview');
-        if (Docking.DockManager.settings.restoreThemeInOverview)
+        if (Docking.DockManager.settings.restoreThemeInOverview) {
+            this._themeStyleActive = true;
             this._revertToThemeStyle();
+        }
     }
 
     _onOverviewHiding() {
         this._actor.remove_style_pseudo_class('overview');
-        // Restore the customized background and transparency
-        if (Docking.DockManager.settings.restoreThemeInOverview)
+
+        // Restore the customized style as soon as the overview starts
+        // hiding, so the color transition (250ms) runs while the
+        // overview fades out, instead of starting only when it is
+        // fully gone (perceived as a slow transition).
+        if (Docking.DockManager.settings.restoreThemeInOverview) {
+            this._themeStyleActive = false;
+            this.updateCustomTheme(true);
+        }
+    }
+
+    // Safety pass: the customized style is normally restored as soon as the
+    // overview starts hiding (see _onOverviewHiding); re-apply it once the
+    // overview is fully gone in case that earlier restore was skipped
+    // (e.g. the dock actor was not mapped yet).
+    // Skip when the customized style is already active: updateCustomTheme()
+    // probes the theme colors by temporarily clearing the inline style,
+    // which snaps the background back to the theme color and restarts the
+    // color transition.
+    _onOverviewHidden() {
+        if (Docking.DockManager.settings.restoreThemeInOverview && this._themeStyleActive) {
+            this._themeStyleActive = false;
             this.updateCustomTheme();
+        }
     }
 
     // Apply the toggle live when the overview is currently visible
@@ -144,20 +175,25 @@ export class ThemeManager {
         if (!Main.overview.visible)
             return;
 
-        if (Docking.DockManager.settings.restoreThemeInOverview)
+        if (Docking.DockManager.settings.restoreThemeInOverview) {
+            this._themeStyleActive = true;
             this._revertToThemeStyle();
-        else
+        } else {
+            this._themeStyleActive = false;
             this.updateCustomTheme();
+        }
     }
 
     // Revert the dock background color and transparency to the theme defaults
-    // (i.e. the state before any extension customization is applied)
+    // (i.e. the state before any extension customization is applied).
+    // Keep the 250ms transition so the fade to the theme color matches the
+    // fade to the custom color when leaving the overview.
     _revertToThemeStyle() {
-        this._dash._background.set_style(null);
+        this._dash._background.set_style(
+            'transition-delay: 0s; transition-duration: 0.250s;');
         this._transparency.disable();
         this._actor.remove_style_class_name('opaque');
-        this._actor.remove_style_class_name('transparent');
-        this._actor.remove_style_class_name('dashtodock');
+        this._actor.remove_style_class_name('straight-corner');
     }
 
     _updateDashOpacity() {
@@ -287,8 +323,21 @@ export class ThemeManager {
         }
     }
 
-    updateCustomTheme() {
+    updateCustomTheme(force = false) {
         if (!this._actor.mapped)
+            return;
+
+        // While the overview is showing and "restore theme in overview" is
+        // enabled, the dock must use the shell theme (applied by
+        // _revertToThemeStyle), not the custom theme. Skip here so the
+        // queued update fired at startup (via the actor's notify::mapped)
+        // does not override the theme color that _onOverviewShowing already
+        // set. Without this the dock kept the wrong color at login until the
+        // next manual desktop -> overview toggle re-applied the revert.
+        // `force` bypasses this for explicit calls made on purpose, such
+        // as the restore on overview hiding.
+        if (!force && Main.overview.visible &&
+                Docking.DockManager.settings.restoreThemeInOverview)
             return;
 
         this._updateCustomStyleClasses();
@@ -526,12 +575,16 @@ class Transparency {
     }
 
     _dockIsNear() {
-        if (this._dockActor.has_style_pseudo_class('overview'))
+        // In overview the dock is transparent, but while the overview is
+        // closing the dock should already get its desktop style, so the
+        // color transition completes within the switch animation.
+        if (Main.overview.visible && !Main.overview.closing)
             return false;
         /* Get all the windows in the active workspace that are in the primary monitor and visible */
         const activeWorkspace = global.workspace_manager.get_active_workspace();
         const dash = this._dash;
-        const windows = activeWorkspace.list_windows().filter(metaWindow => {
+        const _winAll = activeWorkspace.list_windows();
+        const windows = _winAll.filter(metaWindow => {
             return metaWindow.get_monitor() === dash._monitorIndex &&
                    metaWindow.showing_on_its_workspace() &&
                    metaWindow.get_window_type() !== Meta.WindowType.DESKTOP &&

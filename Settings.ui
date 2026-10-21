@@ -2179,27 +2179,25 @@
                       <property name="can-focus">False</property>
                       <child>
                         <object class="GtkBox">
-                          <property name="visible">True</property>
-                          <property name="can-focus">False</property>
+                          <property name="can_focus">0</property>
+                          <property name="spacing">32</property>
                           <property name="margin_start">12</property>
                           <property name="margin_end">12</property>
-                          <property name="margin_top">6</property>
-                          <property name="margin_bottom">6</property>
-                          <property name="orientation">VERTICAL</property>
+                          <property name="margin_top">12</property>
+                          <property name="margin_bottom">12</property>
                           <child>
                             <object class="GtkLabel">
-                              <property name="visible">True</property>
-                              <property name="can-focus">False</property>
-                              <property name="halign">START</property>
+                              <property name="hexpand">1</property>
+                              <property name="can_focus">0</property>
+                              <property name="valign">center</property>
+                              <property name="halign">start</property>
                               <property name="label" translatable="yes">Restore theme background and transparency in overview mode</property>
                             </object>
                           </child>
                           <child>
                             <object class="GtkSwitch" id="restore_theme_in_overview_switch">
-                              <property name="visible">True</property>
-                              <property name="can-focus">True</property>
-                              <property name="halign">START</property>
-                              <property name="valign">BASELINE</property>
+                              <property name="valign">center</property>
+                              <property name="margin_start">3</property>
                             </object>
                           </child>
                         </object>

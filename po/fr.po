@@ -746,3 +746,7 @@ msgstr "Seuil de pression"
 
 #~ msgid "0.000"
 #~ msgstr "0.000"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "Restaurer le fond et la transparence du thème en mode aperçu"

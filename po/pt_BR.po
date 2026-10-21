@@ -754,3 +754,7 @@ msgstr "Limiar de pressão"
 #: Settings.ui.h:122
 msgid "Show dock for urgent notifications"
 msgstr "Mostrar o dock para notificações urgentes"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "Restaurar o fundo e a transparência do tema no modo de visão geral"

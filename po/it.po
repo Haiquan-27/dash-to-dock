@@ -752,3 +752,7 @@ msgstr "Soglia pressione"
 
 #~ msgid "Adaptive"
 #~ msgstr "Adattivo"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "Ripristina lo sfondo e la trasparenza del tema in modalità overview"

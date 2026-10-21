@@ -423,14 +423,11 @@ const DockedDash = GObject.registerClass({
         // Delay operations that require the shell to be fully loaded and with
         // user theme applied.
         if (Main.layoutManager._startingUp) {
-            this._prepareStartupAnimation();
-
             this._signalsHandler.addWithLabel(Labels.STARTUP_ANIMATION,
                 Main.layoutManager, 'startup-complete', () => {
                     this._signalsHandler.removeWithLabel(Labels.STARTUP_ANIMATION);
                     this._trackDock();
                     this._initialize();
-                    this._runStartupAnimation();
                 });
         } else {
             this._trackDock();
@@ -542,42 +539,6 @@ const DockedDash = GObject.registerClass({
             GLib.source_remove(this._optionalScrollWorkspaceSwitchDeadTimeId);
             delete this._optionalScrollWorkspaceSwitchDeadTimeId;
         }
-    }
-
-    _prepareStartupAnimation() {
-        this.opacity = 255;
-        this.dash.set({
-            opacity: 0,
-            translation_x: 0,
-            translation_y: 0,
-        });
-    }
-
-    _runStartupAnimation() {
-        const {dash} = this;
-
-        switch (this.position) {
-        case St.Side.LEFT:
-            dash.translation_x = -dash.width;
-            break;
-        case St.Side.RIGHT:
-            dash.translation_x = dash.width;
-            break;
-        case St.Side.BOTTOM:
-            dash.translation_y = dash.height;
-            break;
-        case St.Side.TOP:
-            dash.translation_y = -dash.height;
-            break;
-        }
-
-        dash.ease({
-            opacity: 255,
-            translation_x: 0,
-            translation_y: 0,
-            duration: STARTUP_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
     }
 
     _updateAutoHideBarriers() {
@@ -939,17 +900,24 @@ const DockedDash = GObject.registerClass({
     }
 
     _animateOut(time, delay) {
-        if (this.dockState === State.HIDDEN)
+        // A freshly created dock is still at slide-x = 1 while its state
+        // is HIDDEN; slide it out to keep the visual position in sync
+        // instead of returning early, otherwise the dock would remain
+        // visible (e.g. after a screen unlock that reloads the extension).
+        if (this.dockState === State.HIDDEN &&
+            this._slider['slide-x'] <= 0.001)
             return;
 
-        this.dockState = State.HIDING;
+        if (this.dockState !== State.HIDDEN)
+            this.dockState = State.HIDING;
 
         this._slider.ease_property('slide-x', 0, {
             duration: time * 1000,
             delay: delay * 1000,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                this.dockState = State.HIDDEN;
+                if (this.dockState === State.HIDING)
+                    this.dockState = State.HIDDEN;
 
                 // Remove queued barrier removal timeout if any
                 if (this._removeBarrierTimeoutId > 0) {
@@ -1372,7 +1340,6 @@ const DockedDash = GObject.registerClass({
 
         this._staticBoxGeometry = {x, y, width, height};
         this._staticBox.init_rect(x, y, width, height);
-
         this._intellihide.updateTargetBox(this._staticBox);
         this._updateVisibleDesktop();
         this._updateStruts();
@@ -2083,9 +2050,9 @@ export class DockManager {
     }
 
     _toggle() {
-        if (this._toggleLater)
+        if (this._toggleLater) {
             return;
-
+        }
         this._toggleLater = Utils.laterAdd(Meta.LaterType.BEFORE_REDRAW, () => {
             delete this._toggleLater;
             this._restoreDash();

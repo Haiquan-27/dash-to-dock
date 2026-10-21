@@ -583,3 +583,7 @@ msgstr "表示までのタイムアウト (秒)"
 #: Settings.ui.h:108
 msgid "Pressure threshold"
 msgstr "押し込み量 (ピクセル)"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "概要モードでテーマの背景と透明度を復元します"

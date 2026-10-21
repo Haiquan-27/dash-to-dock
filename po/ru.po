@@ -837,3 +837,7 @@ msgstr "Порог давления"
 
 #~ msgid "Shrink the dash size by reducing padding"
 #~ msgstr "Уменьшить Док за счёт промежутков"
+
+#: Settings.ui:2194
+msgid "Restore theme background and transparency in overview mode"
+msgstr "Восстанавливать фон и прозрачность темы в режиме обзора"
