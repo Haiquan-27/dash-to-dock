@@ -118,23 +118,35 @@ export const DockAbstractAppIcon = GObject.registerClass({
 }, class DockAbstractAppIcon extends Dash.DashIcon {
     // Keep the dock icon width consistent between the custom-theme state
     // and the overview state when "restore theme in overview" is enabled.
-    // In the custom state the `#dashtodockContainer .overview-tile` CSS rule
-    // adds 2px of horizontal padding around the icon (2px on each side), but
+    // In the custom state the `#dashtodockContainer.{bottom,left,right}
+    // .overview-tile` CSS rule adds horizontal padding around the icon, but
     // that class is dropped from the dock when the theme is restored in the
-    // overview. Without a stable width every icon would change by ~4px - and
-    // the whole dock would jump by ~4px * iconCount each time the overview is
-    // toggled. Anchor the width to the app icon's own preferred size (which is
-    // theme independent) plus that rule's horizontal padding, so the width is
-    // identical in both states and the icon is never clipped.
+    // overview. This vfunc does not call the parent implementation, so St's
+    // own padding accounting is skipped: the tile's public width is exactly
+    // the value returned here, while St still subtracts the CSS padding when
+    // allocating the tile's children. The padding therefore has to be added
+    // back here, anchored to the app icon's own preferred size (which is
+    // theme independent) with a fixed value per dock orientation:
+    //   bottom: 2px on each side == 4px
+    //   left/right: 14px + 10px == 24px, the largest total used by the
+    //   normal, extended and shrink variants, so the icon is never clipped
+    //   in any state.
+    // Without a stable width every icon would change by a few px - and the
+    // whole dock would jump by ~padding * iconCount each time the overview
+    // is toggled.
     vfunc_get_preferred_width(forHeight) {
         const icon = this.icon;
         if (icon && icon.get_preferred_width) {
             const [iconMin, iconNat] = icon.get_preferred_width(-1);
             const iconWidth = Math.max(iconNat, iconMin, 0);
             if (iconWidth > 0) {
-                // 4px == the horizontal padding (2px on each side) that the
-                // `overview-tile` rule contributes in the custom state.
-                const width = iconWidth + 4;
+                const position = Utils.getPosition();
+                // 24px == the horizontal padding (14px + 10px) of the
+                // `overview-tile` rule on a left/right dock.
+                const padding
+                    = position === St.Side.LEFT || position === St.Side.RIGHT
+                        ? 24 : 4;
+                const width = iconWidth + padding;
                 return [width, width];
             }
         }

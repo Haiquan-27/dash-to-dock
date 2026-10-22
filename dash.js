@@ -44,7 +44,7 @@ const Labels = Object.freeze({
  *
  * - set label position based on dash orientation
  *
-  */
+ */
 const DockDashItemContainer = GObject.registerClass(
 class DockDashItemContainer extends Dash.DashItemContainer {
     _init(position) {
