@@ -116,24 +116,22 @@ export const DockAbstractAppIcon = GObject.registerClass({
             0, GLib.MAXUINT32, 0),
     },
 }, class DockAbstractAppIcon extends Dash.DashIcon {
-    // Keep the dock icon width consistent between the custom-theme state
-    // and the overview state when "restore theme in overview" is enabled.
-    // In the custom state the `#dashtodockContainer.{bottom,left,right}
-    // .overview-tile` CSS rule adds horizontal padding around the icon, but
-    // that class is dropped from the dock when the theme is restored in the
-    // overview. This vfunc does not call the parent implementation, so St's
-    // own padding accounting is skipped: the tile's public width is exactly
-    // the value returned here, while St still subtracts the CSS padding when
-    // allocating the tile's children. The padding therefore has to be added
-    // back here, anchored to the app icon's own preferred size (which is
-    // theme independent) with a fixed value per dock orientation:
-    //   bottom: 2px on each side == 4px
+    // Keep the tile width independent of the CSS padding around the icon.
+    // This vfunc does not call the parent implementation, so St's own
+    // padding accounting is skipped: the tile's public width is exactly
+    // the value returned here, while St still subtracts the CSS padding
+    // when allocating the tile's children. The padding therefore has to
+    // be added back here, anchored to the app icon's own preferred size
+    // (which is theme independent) with a fixed value per dock
+    // orientation:
+    //   bottom/top: 2px on each side == 4px
     //   left/right: 14px + 10px == 24px, the largest total used by the
-    //   normal, extended and shrink variants, so the icon is never clipped
-    //   in any state.
-    // Without a stable width every icon would change by a few px - and the
-    // whole dock would jump by ~padding * iconCount each time the overview
-    // is toggled.
+    //   normal, extended and shrink variants, so the icon is never
+    //   clipped in any state.
+    // The stylesheet keeps the total identical in the normal and
+    // extended states, so the icon center does not move when the panel
+    // is toggled. Without a stable width every icon would change by a
+    // few px between states, and the dock content would shift with them.
     vfunc_get_preferred_width(forHeight) {
         const icon = this.icon;
         if (icon && icon.get_preferred_width) {
@@ -1453,6 +1451,35 @@ export function getInterestingWindows(windows, monitorIndex) {
 }
 
 /**
+ * A `St.Button` subclass that keeps the show-apps button width independent
+ * of the CSS padding, mirroring the `DockAbstractAppIcon` width vfunc (see
+ * there for the rationale). The button is created as a plain `St.Button`
+ * by `Dash.ShowAppsIcon._init`, which cannot override vfuncs, so
+ * `DockShowAppsIcon._init` swaps it for an instance of this class.
+ */
+const ShowAppsButton = GObject.registerClass({
+}, class ShowAppsButton extends St.Button {
+    vfunc_get_preferred_width(forHeight) {
+        const icon = this.child;
+        if (icon && icon.get_preferred_width) {
+            const [iconMin, iconNat] = icon.get_preferred_width(-1);
+            const iconWidth = Math.max(iconNat, iconMin, 0);
+            if (iconWidth > 0) {
+                const position = Utils.getPosition();
+                // 24px == the horizontal padding (14px + 10px) of the
+                // `show-apps` rule on a left/right dock.
+                const padding
+                    = position === St.Side.LEFT || position === St.Side.RIGHT
+                        ? 24 : 4;
+                const width = iconWidth + padding;
+                return [width, width];
+            }
+        }
+        return super.vfunc_get_preferred_width(forHeight);
+    }
+});
+
+/**
  * A ShowAppsIcon improved class.
  *
  * - set label position based on dash orientation
@@ -1471,6 +1498,25 @@ export const DockShowAppsIcon = GObject.registerClass({
 , class DockShowAppsIcon extends Dash.ShowAppsIcon {
     _init(position) {
         super._init();
+
+        // The show-apps button needs the same stable width as the app
+        // tiles (see `DockAbstractAppIcon.vfunc_get_preferred_width`):
+        // without it its width would follow the CSS padding and shift the
+        // icon between the dock states. The button is created as a plain
+        // `St.Button` by `Dash.ShowAppsIcon._init`, which cannot override
+        // vfuncs, so it is swapped for a `ShowAppsButton` here.
+        const oldButton = this.toggleButton;
+        const icon = oldButton.child;
+        oldButton.child = null;
+        this.toggleButton = new ShowAppsButton({
+            style_class: 'show-apps',
+            track_hover: true,
+            can_focus: true,
+            toggle_mode: true,
+        });
+        this.toggleButton.child = icon;
+        this.toggleButton._delegate = this;
+        this.setChild(this.toggleButton);
 
         // Re-use appIcon methods
         const {prototype: appIconPrototype} = AppDisplay.AppIcon;

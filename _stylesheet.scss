@@ -191,7 +191,16 @@ $dock_style_modes: null, shrink, extended, extended-shrink;
             }
 
             #dashtodockDashContainer {
-                padding: if($is_extended, 0, $padding);
+                // The item containers no longer zero their first/last axis
+                // margin (see below), so the container axis padding is
+                // reduced by the item spacing to keep the steady state
+                // unchanged. In extended mode the padding is 0 and the
+                // spacing is absorbed by the edge padding below.
+                @if ($is_extended) {
+                    padding: 0;
+                } @else {
+                    padding: $padding - $dock_spacing;
+                }
                 padding-#{$side}: 0;
                 padding-#{opposite($side)}: 0;
 
@@ -201,22 +210,74 @@ $dock_style_modes: null, shrink, extended, extended-shrink;
                 }
 
                 @if ($is_extended) {
-                    @include padded-dash-edge-items($side, $edge_items_padding);
+                    // The show-apps tile keeps its edge padding so the icon
+                    // stays clickable up to the dock edge.
+                    @each $child_pos in first, last {
+                        > :#{$child_pos}-child .show-apps {
+                            @include padded-edge-child($child_pos, $side,
+                                $edge_items_padding);
+                        }
+                    }
+                    // The scrollview edge padding is reduced by the item
+                    // spacing to absorb the first/last item axis margins
+                    // (2px each) that are no longer zeroed, so the icons
+                    // keep their steady positions on the first allocation
+                    // frame after a rebuild. The scrollview is never
+                    // rebuilt, so its pseudo classes are stable.
+                    #dashtodockDashScrollview {
+                        &:first-child {
+                            @include padded-edge-child(first, $side,
+                                $edge_items_padding - $dock_spacing);
+                        }
+                        &:last-child {
+                            @include padded-edge-child(last, $side,
+                                $edge_items_padding - $dock_spacing);
+                        }
+                    }
                 }
             }
 
             .dash-item-container {
-                /* Disable all margins defined upstream, we handle them here */
+                /* Disable all margins defined upstream, we handle here */
                 > * {margin: 0;}
 
-                @include set-internal-children-property($side, margin,
-                    0, $dock_icons_distance / 2);
+                // Do not zero the first/last axis margin via pseudo-classes:
+                // St recomputes those pseudo classes only in an idle
+                // handler, so freshly created items would keep the untrimmed
+                // margin for one extra frame after a rebuild and the dash
+                // would jitter. The container padding (see above) and the
+                // show-apps item margin (see below) absorb the spacing so
+                // the steady state is unchanged.
+                @if is_horizontal($side) {
+                    margin: 0 ($dock_icons_distance / 2);
+                } @else {
+                    margin: ($dock_icons_distance / 2) 0;
+                }
 
                 .app-well-app,
                 .show-apps,
                 .overview-tile {
-                    @include set-internal-children-property($side, padding, $spacing);
-                    padding-#{$side}: $padding + $side_margin;
+                    // The tile is always the only child of its item container,
+                    // so the :first-child/:last-child axis padding overrides
+                    // emitted by set-internal-children-property always matched
+                    // in steady state. St recomputes those pseudo classes only
+                    // in an idle handler, so freshly created tiles keep the
+                    // base 2px axis padding for one extra frame and grow the
+                    // dash by 4px per tile. Declare the zero axis padding
+                    // directly to keep the tile size stable on the first
+                    // allocation frame after a rebuild.
+                    @if is_horizontal($side) {
+                        padding-left: 0;
+                        padding-right: 0;
+                    } @else {
+                        padding-top: 0;
+                        padding-bottom: 0;
+                    }
+                    // Keep the edge padding in extended mode so the icon does
+                    // not shift when the panel is toggled: the icon width is
+                    // pinned to the icon size plus the total padding, which
+                    // must be the same in every state.
+                    padding-#{$side}: $padding + if($is_extended, $dock_side_margin, $side_margin);
                     padding-#{opposite($side)}: $padding;
 
                     &.updating {
@@ -242,6 +303,22 @@ $dock_style_modes: null, shrink, extended, extended-shrink;
                 > StButton {
                     transition-duration: 250;
                     background-size: contain;
+                }
+            }
+
+            // The show-apps item is never rebuilt, so its first/last pseudo
+            // classes are stable. Zero the axis margin on the side it sits
+            // at (the side adjacent to the dash box) to absorb the last item
+            // axis margin that is no longer zeroed. It is the only direct
+            // .dash-item-container child of its container.
+            #dashtodockDashContainer > .dash-item-container,
+            #dashtodockBoxContainer > .dash-item-container {
+                @if is_horizontal($side) {
+                    &:first-child { margin-right: 0; }
+                    &:last-child { margin-left: 0; }
+                } @else {
+                    &:first-child { margin-bottom: 0; }
+                    &:last-child { margin-top: 0; }
                 }
             }
         }
